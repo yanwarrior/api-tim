@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users',
 ]
 
 MIDDLEWARE = [
@@ -113,6 +114,11 @@ USE_L10N = True
 
 USE_TZ = True
 
+
+JWT_SECRET = SECRET_KEY
+JWT_ALGORITHM = 'HS256'
+JWT_EXP_DELTA_SECONDS = 20
+BEARER = 'JWT'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
