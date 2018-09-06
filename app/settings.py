@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'users',
+    'products',
 ]
 
 MIDDLEWARE = [
@@ -117,7 +118,7 @@ USE_TZ = True
 
 JWT_SECRET = SECRET_KEY
 JWT_ALGORITHM = 'HS256'
-JWT_EXP_DELTA_SECONDS = 20
+JWT_EXP_DELTA_SECONDS = 20000
 BEARER = 'JWT'
 
 # Static files (CSS, JavaScript, Images)
