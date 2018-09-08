@@ -11,6 +11,8 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from payload_wtf import pwtf
 
+from app.commons.views.bodyparsers import json_parser
+
 
 class TokenCreateView(View):
     payloader = pwtf.PayloadWTF()
@@ -46,3 +48,29 @@ class TokenCreateView(View):
             self.payloader.reset()
             self.payloader.set_state(setter=self.payloader.SET_RESULT, data={'error': str(e)})
             return JsonResponse(self.payloader.todata(), safe=False, status=http.HTTPStatus.BAD_REQUEST)
+
+
+class TokenVerifyView(View):
+    payloader = pwtf.PayloadWTF()
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
+    def post(self, request):
+        body = json_parser(request)
+        try:
+            decoder = jwt.decode(body.get('token'), settings.JWT_SECRET,
+                                 algorithms=[settings.JWT_ALGORITHM])
+            self.payloader.set_state(setter=self.payloader.SET_RESULT, data=body)
+            return JsonResponse(self.payloader.todata(), safe=False, status=http.HTTPStatus.OK)
+
+        except (jwt.DecodeError, jwt.ExpiredSignatureError):
+            self.payloader.reset()
+            self.payloader.set_state(setter=self.payloader.SET_RESULT, data={'error': 'Token is invalid.'})
+            return JsonResponse(self.payloader.todata(), safe=False, status=http.HTTPStatus.BAD_REQUEST)
+
+        except Exception as e:
+            self.payloader.reset()
+            self.payloader.set_state(setter=self.payloader.SET_RESULT, data={'error': 'Something wrong.'})
+            return JsonResponse(self.payloader.todata(), safe=False, status=http.HTTPStatus.INTERNAL_SERVER_ERROR)
