@@ -1,6 +1,7 @@
 import http
 import json
 
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
@@ -12,7 +13,7 @@ from app.commons.decorators import auth_with_token
 from app.commons.views import paginators
 from app.commons.views.bodyparsers import json_parser
 from products.facade_filter import FacadeCategoryFilter
-from products.models import Category
+from products.models import Category, Product
 
 
 class CategoryListView(View):
@@ -37,7 +38,7 @@ class CategoryListView(View):
 
     def get(self, request):
         categories = self.get_queryset(request)
-        categories, self.payload = self.paging.paginate(request, categories, self.payload, 1)
+        categories, self.payload = self.paging.paginate(request, categories, self.payload, 10)
 
         data = []
         for category in categories:
@@ -99,5 +100,48 @@ class CategoryDetailView(View):
         self.payload.set_state(setter=self.payload.SET_RESULT, data={'message': 'Success delete category'})
 
         return JsonResponse(self.payload.todata(), safe=False, status=http.HTTPStatus.NO_CONTENT)
+
+
+@csrf_exempt
+@auth_with_token
+def product_list(request):
+    if request.method == 'GET':
+        payload = {'results': [], 'links': {'next': '', 'prev': ''}, 'meta': {}}
+        page = request.GET.get('page', 1)
+
+        products = Product.objects.all()
+        paginator = Paginator(products, 10)
+
+        try:
+            products = paginator.page(page)
+        except PageNotAnInteger:
+            products = paginator.page(1)
+        except EmptyPage:
+            products = paginator.page(paginator.num_pages)
+
+        for product in products:
+            payload['results'].append({
+                'id': product.id,
+                'name': product.name,
+                'category': {
+                    'id': product.category.id,
+                    'name': product.category.name
+                },
+                'category_human': product.category.name,
+                'stock': product.stock,
+                'stock_minimum': product.stock_minimum,
+                'price': product.price
+            })
+
+        if products.has_previous():
+            payload['links']['prev'] = products.previous_page_number()
+
+        if products.has_next():
+            payload['links']['next'] = products.next_page_number()
+
+        return JsonResponse(payload, safe=False, status=http.HTTPStatus.OK)
+
+
+
 
 
