@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from payload_wtf import pwtf
 
 from app.commons.decorators import auth_with_token
@@ -38,7 +39,10 @@ class CategoryListView(View):
 
     def get(self, request):
         categories = self.get_queryset(request)
-        categories, self.payload = self.paging.paginate(request, categories, self.payload, 3)
+        # Select mode is true if you have search selectable on frontend.
+        select_mode = request.GET.get('select_mode')
+        if not select_mode:
+            categories, self.payload = self.paging.paginate(request, categories, self.payload, 3)
 
         data = []
         for category in categories:
@@ -146,6 +150,23 @@ def product_list(request):
 
         return JsonResponse(payload, safe=False, status=http.HTTPStatus.OK)
 
+
+@csrf_exempt
+@auth_with_token
+@require_http_methods(["POST"])
+def product_add(request):
+    payload = {'results': {'message': ''}, 'meta': {}, 'links': {'next': '', 'prev': ''}}
+    body = json.loads(request.body.decode('utf-8'))
+    category = Category.objects.get(id=body.get('categoryId'))
+    Product.objects.create(
+        name=body.get('name'),
+        category=category,
+        stock=body.get('stock'),
+        stock_minimum=body.get('stockMinimum'),
+        price=body.get('price')
+    )
+    payload['results']['message'] = 'Success create product'
+    return JsonResponse(payload, safe=False, status=http.HTTPStatus.CREATED)
 
 
 
