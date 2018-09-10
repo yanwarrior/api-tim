@@ -38,7 +38,7 @@ class CategoryListView(View):
 
     def get(self, request):
         categories = self.get_queryset(request)
-        categories, self.payload = self.paging.paginate(request, categories, self.payload, 10)
+        categories, self.payload = self.paging.paginate(request, categories, self.payload, 3)
 
         data = []
         for category in categories:
@@ -108,9 +108,14 @@ def product_list(request):
     if request.method == 'GET':
         payload = {'results': [], 'links': {'next': '', 'prev': ''}, 'meta': {}}
         page = request.GET.get('page', 1)
+        name = request.GET.get('name', '')
 
         products = Product.objects.all()
-        paginator = Paginator(products, 10)
+
+        if name:
+            products = products.filter(name__contains=name)
+
+        paginator = Paginator(products, 1)
 
         try:
             products = paginator.page(page)
