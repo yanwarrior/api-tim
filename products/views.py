@@ -169,5 +169,44 @@ def product_add(request):
     return JsonResponse(payload, safe=False, status=http.HTTPStatus.CREATED)
 
 
+@csrf_exempt
+@auth_with_token
+@require_http_methods(["GET"])
+def product_detail(request, pk):
+    payload = {'results': {}, 'meta': {}, 'links': {'next': '', 'prev': ''}}
+    product = Product.objects.get(pk=pk)
+    payload['results'] = {
+        'id': product.id,
+        'category': {
+            'id': product.category.id,
+            'name': product.category.name
+        },
+        'name': product.name,
+        'price': product.price,
+        'stock': product.stock,
+        'stock_minimum': product.stock_minimum
+    }
 
+    return JsonResponse(payload, safe=False, status=http.HTTPStatus.OK)
+
+
+@csrf_exempt
+@auth_with_token
+@require_http_methods(["PUT"])
+def product_edit(request, pk):
+    payload = {'results': {}, 'meta': {}, 'links': {'next': '', 'prev': ''}}
+    body = json.loads(request.body.decode('utf-8'))
+    product = Product.objects.get(pk=pk)
+    category = Category.objects.get(id=body.get('categoryId'))
+
+    product.name = body.get('name')
+    product.price = body.get('price')
+    product.stock = body.get('stock')
+    product.stock_minimum = body.get('stockMinimum')
+    product.category = category
+    product.save()
+
+    payload['results']['message'] = 'Success update product'
+
+    return JsonResponse(payload, safe=False, status=http.HTTPStatus.OK)
 
